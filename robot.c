@@ -62,12 +62,12 @@ int myAnalogRead(int spiChannel,int channelConfig,int analogChannel)
 
 // INICIALIZACION
 int init(){
-  printf("Iniciando programa...\n");
-  wiringPiSetup();
-  spiSetup(0); 
-  softPwmCreate (RUEDA_DER, 0, RANGE);
-  softPwmCreate (RUEDA_IZQ, 0, RANGE);
-  return 0;
+    printf("Iniciando programa...\n");
+    wiringPiSetup();
+    spiSetup(0);
+    softPwmCreate (RUEDA_DER, 0, RANGE);
+    softPwmCreate (RUEDA_IZQ, 0, RANGE);
+    return 0;
 }
 
 int main ()
@@ -90,7 +90,7 @@ int main ()
         lee_obs_izq = myAnalogRead(spiChannel,channelConfig,CH_OBS_IZQ);
         lee_lin_der = myAnalogRead(spiChannel,channelConfig,CH_LIN_DER);
         lee_lin_izq = myAnalogRead(spiChannel,channelConfig,CH_LIN_IZQ);
-        linea=0;    
+        linea=0;
         // Analizamos obstaculos y linea
         if( lee_obs_der > dis_obstaculo || lee_obs_izq > dis_obstaculo)
             obstaculo = 1; //Detectado obstaculo
@@ -132,7 +132,7 @@ int main ()
                 softPwmWrite(RUEDA_IZQ, MOV_AHOR);
                 //Busco la linea negra
                 for(i=0;i<CABECEO;i++){
-                    delay(1);   
+                    delay(1);
                     if(myAnalogRead(spiChannel,channelConfig,CH_LIN_DER) < lin_negra)
                         break;
                 }
@@ -147,8 +147,8 @@ int main ()
 	            }
 	        }
         }
-//	    delay(100); 
-      /*if(obstaculo == 1) 
+//	    delay(100);
+      /*if(obstaculo == 1)
             printf("Obstaculo");
         if(linea == 1 || linea == 2){
             printf("Linea izquierda: %i\n",lee_lin_der);
