@@ -29,6 +29,7 @@
 #define MOV_HOR 14.5 //Hacia horario
 #define MOV_AHOR 16 //Hacia antihorario
 #define MOV_STOP 0 // Parado
+#define CABECEO 100 // Tiempo que hace cabeceo en el algoritmo de busqueda del camino
 static int myFd ;
 
 void loadSpiDriver()
@@ -61,7 +62,7 @@ int myAnalogRead(int spiChannel,int channelConfig,int analogChannel)
 
 // INICIALIZACION
 int init(){
-printf("Iniciando programa...\n");
+  printf("Iniciando programa...\n");
   wiringPiSetup();
   spiSetup(0); 
   softPwmCreate (RUEDA_DER, 0, RANGE);
@@ -71,97 +72,89 @@ printf("Iniciando programa...\n");
 
 int main ()
 { 
-  int spiChannel=0;
-  int channelConfig=CHAN_CONFIG_SINGLE;
-  int obstaculo = 0;
-  int linea = 0; // 0 = BIEN, 1 = Se sale DER, 2=Se sale IZQ
-  int dis_obstaculo = 200;
-  int lin_negra = 200;// 0 == negro , 1024 == blanco
-  int lee_obs_der = 0;
-  int lee_obs_izq = 0;
-  int lee_lin_der = 0;
-  int lee_lin_izq = 0;
-  int i =0;
-  init();
-  while(1){
-    // Leemos sensores
-    lee_obs_der = myAnalogRead(spiChannel,channelConfig,CH_OBS_DER);
-    lee_obs_izq = myAnalogRead(spiChannel,channelConfig,CH_OBS_IZQ);
-    lee_lin_der = myAnalogRead(spiChannel,channelConfig,CH_LIN_DER);
-    lee_lin_izq = myAnalogRead(spiChannel,channelConfig,CH_LIN_IZQ);
-    linea=0;    
-    // Analizamos obstaculos y linea
-    if( lee_obs_der > dis_obstaculo || lee_obs_izq > dis_obstaculo)
-        obstaculo = 1; //Detectado obstaculo
-    //Analizamos la linea
-    //Doble Blanco
-//printf("%d----%d\n", lee_obs_izq, lee_lin_der);
-    if (lee_lin_izq > lin_negra && lee_lin_der > lin_negra)
-        linea = LIN_BB;
-    //Blanco-Negro
-    else if( lee_lin_izq < lin_negra && lee_lin_der > lin_negra)
-        linea = LIN_NB; // Se sale por la der
-    //Negro-Blanco
-    else if( lee_lin_der < lin_negra && lee_lin_izq > lin_negra)
-        linea = LIN_BN; //Se sale por la izq
-    //Doble Negro
-    else if (lee_lin_der < lin_negra && lee_lin_izq < lin_negra) 
-       linea = LIN_NN;
-    obstaculo = 0;
-    // Movemos ruedas segun la lectura obtenida
-    if (obstaculo == 1 ){ //Si encuentro un obstaculo paro
-	softPwmWrite(RUEDA_DER, MOV_STOP);
-        softPwmWrite(RUEDA_IZQ, MOV_STOP);
-    }
-    else{// no hay obstaculo	
-    	if (linea == LIN_NN){ // Seguimos recto
-//	    printf("NN\n");
-            softPwmWrite(RUEDA_DER, MOV_HOR);
-	    softPwmWrite(RUEDA_IZQ, MOV_AHOR);
-        }
-        else if (linea == LIN_NB){ // Me estoy saliendo por la derecha
-//	    printf("NB\n");
-	    softPwmWrite(RUEDA_DER, MOV_STOP);
-	    softPwmWrite(RUEDA_IZQ, MOV_AHOR);
-	}
-        else if (linea == LIN_BN){ // Me estoy saliendo por la izquierda
-//	    printf("BN\n");
+    int spiChannel=0;
+    int channelConfig=CHAN_CONFIG_SINGLE;
+    int obstaculo = 0;
+    int linea = 0; // 0 = BIEN, 1 = Se sale DER, 2=Se sale IZQ
+    int dis_obstaculo = 200;
+    int lin_negra = 200;// 0 == negro , 1024 == blanco
+    int lee_obs_der = 0;
+    int lee_obs_izq = 0;
+    int lee_lin_der = 0;
+    int lee_lin_izq = 0;
+    int i =0;
+    init();
+    while(1){
+        // Leemos sensores
+        lee_obs_der = myAnalogRead(spiChannel,channelConfig,CH_OBS_DER);
+        lee_obs_izq = myAnalogRead(spiChannel,channelConfig,CH_OBS_IZQ);
+        lee_lin_der = myAnalogRead(spiChannel,channelConfig,CH_LIN_DER);
+        lee_lin_izq = myAnalogRead(spiChannel,channelConfig,CH_LIN_IZQ);
+        linea=0;    
+        // Analizamos obstaculos y linea
+        if( lee_obs_der > dis_obstaculo || lee_obs_izq > dis_obstaculo)
+            obstaculo = 1; //Detectado obstaculo
+        //Analizamos la linea
+        //Doble Blanco
+        if (lee_lin_izq > lin_negra && lee_lin_der > lin_negra)
+            linea = LIN_BB;
+        //Blanco-Negro
+        else if( lee_lin_izq < lin_negra && lee_lin_der > lin_negra)
+            linea = LIN_NB; // Se sale por la der
+        //Negro-Blanco
+        else if( lee_lin_der < lin_negra && lee_lin_izq > lin_negra)
+            linea = LIN_BN; //Se sale por la izq
+        //Doble Negro
+        else if (lee_lin_der < lin_negra && lee_lin_izq < lin_negra) 
+           linea = LIN_NN;
+        obstaculo = 0;
+        // Movemos ruedas segun la lectura obtenida
+        if (obstaculo == 1 ){ //Si encuentro un obstaculo paro
+	        softPwmWrite(RUEDA_DER, MOV_STOP);
             softPwmWrite(RUEDA_IZQ, MOV_STOP);
-	    softPwmWrite(RUEDA_DER, MOV_HOR); 
         }
-	else if(linea == LIN_BB){
-//	   printf("BB\n");ç
-	   //Giro a la derecha
-	   softPwmWrite(RUEDA_DER, MOV_AHOR);
-           softPwmWrite(RUEDA_IZQ, MOV_AHOR);
-//         int i=0; 
-           //Busco la linea negra
-           for(i=0;i <200;i++){
-//	       printf("BUCLE 1%d\n", i);
-               delay(1);   
-               if(myAnalogRead(spiChannel,channelConfig,CH_LIN_DER) < lin_negra)
-                   break;
-           }
-	   if(i==200){
-	       softPwmWrite(RUEDA_DER, MOV_HOR);
-	       softPwmWrite(RUEDA_IZQ, MOV_HOR);
-	       for(i = 0; i<400;i++){		
-		  // printf("BUCKE 2 %d\n", i);
-	           delay(1);
-		   if(myAnalogRead(spiChannel,channelConfig,CH_LIN_IZQ) < lin_negra)
-		   break;
-	       }
-	   }
-	}
+        else{// no hay obstaculo	
+        	if (linea == LIN_NN){ // Seguimos recto
+            softPwmWrite(RUEDA_DER, MOV_HOR);
+	        softPwmWrite(RUEDA_IZQ, MOV_AHOR);
+            }
+            else if (linea == LIN_NB){ // Me estoy saliendo por la derecha
+	        softPwmWrite(RUEDA_DER, MOV_STOP);
+	        softPwmWrite(RUEDA_IZQ, MOV_AHOR);
+	        }
+            else if (linea == LIN_BN){ // Me estoy saliendo por la izquierda
+            softPwmWrite(RUEDA_IZQ, MOV_STOP);
+	        softPwmWrite(RUEDA_DER, MOV_HOR); 
+            }
+	        else if(linea == LIN_BB){
+	            //Giro a la derecha
+	            softPwmWrite(RUEDA_DER, MOV_AHOR);
+                softPwmWrite(RUEDA_IZQ, MOV_AHOR);
+                //Busco la linea negra
+                for(i=0;i<CABECEO;i++){
+                    delay(1);   
+                    if(myAnalogRead(spiChannel,channelConfig,CH_LIN_DER) < lin_negra)
+                        break;
+                }
+	            if(i==CABECEO){
+	                softPwmWrite(RUEDA_DER, MOV_HOR);
+	                softPwmWrite(RUEDA_IZQ, MOV_HOR);
+	                for(i = 0;i<CABECEO*2;i++){
+	                    delay(1);
+	    	            if(myAnalogRead(spiChannel,channelConfig,CH_LIN_IZQ) < lin_negra)
+	    	                break;
+	                }
+	            }
+	        }
+        }
+//	    delay(100); 
+      /*if(obstaculo == 1) 
+            printf("Obstaculo");
+        if(linea == 1 || linea == 2){
+            printf("Linea izquierda: %i\n",lee_lin_der);
+            printf("Linea derecha: %i\n",lee_lin_izq);
+        }
+        obstaculo = 0;*/
     }
-//	   delay(100); 
-  /*  if(obstaculo == 1) 
-        printf("Obstaculo");
-    if(linea == 1 || linea == 2){
-        printf("Linea izquierda: %i\n",lee_lin_der);
-        printf("Linea derecha: %i\n",lee_lin_izq);
-    }
-    obstaculo = 0;*/
-  }
-  return 0;
+    return 0;
 }
