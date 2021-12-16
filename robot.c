@@ -29,7 +29,7 @@
 #define MOV_HOR 14.5 //Hacia horario
 #define MOV_AHOR 16 //Hacia antihorario
 #define MOV_STOP 0 // Parado
-#define CABECEO 100 // Tiempo que hace cabeceo en el algoritmo de busqueda del camino
+#define CABECEO 500 // Tiempo que hace cabeceo en el algoritmo de busqueda del camino
 static int myFd ;
 
 void loadSpiDriver()
@@ -76,13 +76,13 @@ int main ()
     int channelConfig=CHAN_CONFIG_SINGLE;
     int obstaculo = 0;
     int linea = 0; // 0 = BIEN, 1 = Se sale DER, 2=Se sale IZQ
-    int dis_obstaculo = 200;
+    int dis_obstaculo = 500; // Cuanto mas, mas cerca
     int lin_negra = 200;// 0 == negro , 1024 == blanco
     int lee_obs_der = 0;
     int lee_obs_izq = 0;
     int lee_lin_der = 0;
     int lee_lin_izq = 0;
-    int i =0;
+    int i=0;
     init();
     while(1){
         // Leemos sensores
@@ -94,7 +94,9 @@ int main ()
         // Analizamos obstaculos y linea
         if( lee_obs_der > dis_obstaculo || lee_obs_izq > dis_obstaculo)
             obstaculo = 1; //Detectado obstaculo
-        //Analizamos la linea
+        else
+	    obstaculo = 0;
+	//Analizamos la linea
         //Doble Blanco
         if (lee_lin_izq > lin_negra && lee_lin_der > lin_negra)
             linea = LIN_BB;
@@ -105,17 +107,16 @@ int main ()
         else if( lee_lin_der < lin_negra && lee_lin_izq > lin_negra)
             linea = LIN_BN; //Se sale por la izq
         //Doble Negro
-        else if (lee_lin_der < lin_negra && lee_lin_izq < lin_negra) 
+        else if (lee_lin_der < lin_negra && lee_lin_izq < lin_negra)
            linea = LIN_NN;
-        obstaculo = 0;
         // Movemos ruedas segun la lectura obtenida
         if (obstaculo == 1 ){ //Si encuentro un obstaculo paro
-	        softPwmWrite(RUEDA_DER, MOV_STOP);
+	    softPwmWrite(RUEDA_DER, MOV_STOP);
             softPwmWrite(RUEDA_IZQ, MOV_STOP);
         }
-        else{// no hay obstaculo	
-        	if (linea == LIN_NN){ // Seguimos recto
-            softPwmWrite(RUEDA_DER, MOV_HOR);
+        else{// no hay obstaculo
+            if (linea == LIN_NN){ // Seguimos recto
+                softPwmWrite(RUEDA_DER, MOV_HOR);
 	        softPwmWrite(RUEDA_IZQ, MOV_AHOR);
             }
             else if (linea == LIN_NB){ // Me estoy saliendo por la derecha
@@ -123,12 +124,12 @@ int main ()
 	        softPwmWrite(RUEDA_IZQ, MOV_AHOR);
 	        }
             else if (linea == LIN_BN){ // Me estoy saliendo por la izquierda
-            softPwmWrite(RUEDA_IZQ, MOV_STOP);
-	        softPwmWrite(RUEDA_DER, MOV_HOR); 
+            	softPwmWrite(RUEDA_IZQ, MOV_STOP);
+	        softPwmWrite(RUEDA_DER, MOV_HOR);
             }
-	        else if(linea == LIN_BB){
-	            //Giro a la derecha
-	            softPwmWrite(RUEDA_DER, MOV_AHOR);
+	    else if(linea == LIN_BB){
+	        //Giro a la derecha
+	        softPwmWrite(RUEDA_DER, MOV_AHOR);
                 softPwmWrite(RUEDA_IZQ, MOV_AHOR);
                 //Busco la linea negra
                 for(i=0;i<CABECEO;i++){
@@ -136,25 +137,17 @@ int main ()
                     if(myAnalogRead(spiChannel,channelConfig,CH_LIN_DER) < lin_negra)
                         break;
                 }
-	            if(i==CABECEO){
-	                softPwmWrite(RUEDA_DER, MOV_HOR);
-	                softPwmWrite(RUEDA_IZQ, MOV_HOR);
-	                for(i = 0;i<CABECEO*2;i++){
-	                    delay(1);
-	    	            if(myAnalogRead(spiChannel,channelConfig,CH_LIN_IZQ) < lin_negra)
-	    	                break;
+	        if(i==CABECEO){
+	            softPwmWrite(RUEDA_DER, MOV_HOR);
+	            softPwmWrite(RUEDA_IZQ, MOV_HOR);
+	            for(i = 0;i<CABECEO*2;i++){
+	                delay(1);
+	    	        if(myAnalogRead(spiChannel,channelConfig,CH_LIN_IZQ) < lin_negra)
+	    	            break;
 	                }
 	            }
 	        }
-        }
-//	    delay(100);
-      /*if(obstaculo == 1)
-            printf("Obstaculo");
-        if(linea == 1 || linea == 2){
-            printf("Linea izquierda: %i\n",lee_lin_der);
-            printf("Linea derecha: %i\n",lee_lin_izq);
-        }
-        obstaculo = 0;*/
+            }
     }
     return 0;
 }
